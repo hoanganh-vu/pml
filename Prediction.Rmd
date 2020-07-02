@@ -1,0 +1,153 @@
+---
+title: "Prediction Assignment"
+author: "Vu Thi Hoang Anh"
+date: "7/2/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Executive Summary
+
+Given a multi-level classification problem, linear model might not be the optimal choice. In this report, we are going to explore several tree-based approaches, namely Random Forest and Gradient Boosting Machine (gbm), to create models and make predictions on new inputs. We will also compare the error rates and predictions of these different models.
+
+### Data loading and slicing
+
+First we are diving the labelled data (in pml-training.csv) into train and test set. Test set will provide us a good estimate of out of sample error rate.
+
+```{r, echo=TRUE, eval=FALSE}
+library(readr)
+library(caret)
+dat <- read_csv("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv")
+inTrain <- createDataPartition(y=dat$classe,
+                              p=0.75, list=FALSE)
+training <- dat[inTrain,]
+testing <- dat[-inTrain,]
+dim(training)
+dim(testing)
+```
+
+```{r, echo=FALSE, cache=TRUE}
+library(readr)
+library(caret)
+dat <- read_csv("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv")
+inTrain <- createDataPartition(y=dat$classe,
+                              p=0.75, list=FALSE)
+training <- dat[inTrain,]
+testing <- dat[-inTrain,]
+```
+
+```{r, echo=TRUE, cache=TRUE}
+dim(training)
+dim(testing)
+```
+### Data cleaning
+
+The csv file contains several columns with $empty/NA/#DIV/0!$ values. These columns may make it difficult for our model to understand. We will first get rid of columns which have near zero variance or which contain those problematic values.
+We will also convert character fields (names, timestamp) to factor variables.
+I have created a function `cleanFn` so that we can reuse later to clean our test data. 
+```{r, echo=TRUE, cache=TRUE}
+nzv <- nearZeroVar(training)
+div0 <- grep("DIV",training)
+na <- grep("NA",training)
+cleanFn <- function(dat) {
+dat <- dat[,-c(nzv,div0,na)]
+dat[sapply(dat, is.character)] <- lapply(dat[sapply(dat, is.character)], as.factor)
+return (dat)
+}
+training <- cleanFn(training)
+dim(training)
+```
+
+After cleaning, our data contains only 59 variables.
+
+### Building model
+
+Next we going to build a random forest model using our `training` dataset. 
+I have specified the number of trees to be 100 instead of using default number 500 as the out of sample accuracy increases only slightly when the number of trees exceed 100. If we use 500 trees, we can actually get perfect training accuracy of 1! This might be an indication of overfitting.
+
+```{r, echo=FALSE, cache=TRUE}
+library(randomForest)
+```
+
+```{r, echo=TRUE, cache=TRUE}
+rfFit <- randomForest(classe ~ ., data=training, ntree=100)
+```
+
+We are interested in the strong classifiers, below command gives us the level of importance of each predictor in our random forest.  
+
+```{r, echo=TRUE, cache=TRUE}
+order(rfFit$importance, decreasing=T)
+```
+
+In this model, the most important classifier is the index column! This is an alert that our model may be biased. The reason why index plays such a strong role in our model is that data are ordered by the output, hence the output itself has a strong relation to the index. In fact, if we use this model to predict the 20 test samples, we will get all As!
+Therefore, we need to get rid of index column and several other columns which have similar nature (timestamp, window number) and retrain the model:
+
+```{r, echo=TRUE, cache=TRUE}
+training <- training[,-c(1,3:7)]
+rfFit <- randomForest(classe ~ ., data=training)
+order(rfFit$importance, decreasing=T)
+```
+
+We will plot the outcome against several strong classifiers to see whether the classification nature is obvious in graphs:
+```{r, echo=TRUE, cache=TRUE}
+qplot(yaw_belt, pitch_forearm, data=dat, col = as.factor(classe))
+```
+
+```{r, echo=TRUE, cache=TRUE}
+rfFit$err.rate[100,]
+```
+
+The error rate $0.5%$ is random forest's out-of-bag error. However, we may expect that it could still be an underestimate of out-of-sample error. We will find out out-of-sample error later using our test dataset. 
+
+
+Now let's use the test data to validate our model:
+
+```{r, echo=TRUE, cache=TRUE}
+testing <- cleanFn(testing)
+testing <- testing[,-c(1,3:7)]
+confusionMatrix(testing$classe, predict(rfFit,testing))
+```
+
+### Prediction
+
+Now that we have trained and validate our model, we will use it to predict the 20 observations in the test data. 
+```{r, echo=TRUE, eval=FALSE}
+newdata <- read_csv("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv")
+```
+
+```{r, echo=FALSE, cache=TRUE}
+newdata <- read_csv("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv")
+```
+
+```{r, echo=TRUE, cache=TRUE}
+newdata <- cleanFn(newdata)
+newdata <- newdata[,-c(1,3:7)]
+newdata$classe <- as.factor("A")
+levels(newdata$classe) <- levels(training$classe)
+predict(rfFit,newdata)
+```
+
+### Compare against other model
+
+```{r, echo=TRUE, cache=TRUE, eval=FALSE}
+gbmFit <- train(classe ~ ., method="gbm", data=training)
+```
+
+To save time and space, I have asked knitr not to evaluate above commands and extracted the accuracy and the predictions of gbm model below: 
+
+```{r, echo=TRUE, cache=TRUE, eval=FALSE}
+confusionMatrix(testing$classe, predict(gbmFit,testing))
+##Accuracy : 0.9615 
+predict(gbmFit,newdata)
+##[1] B A B A A E D B A A B C B A E E A B B B
+##Levels: A B C D E
+```
+
+We can see that the predictions of gbm model matches `rfFit` perfectly. 
+
+### Conclusion
+
+For this particular dataset, random forest and boosting did a fairly good job in classification. This is an indication that the data collected are highly related to the outcome and that we can make use of the variables in the data to predict the type of action that the object is doing. Both models have very high accuracy, with random forest being slightly better. They also lead to the same predictions on the 20 new observations.  
