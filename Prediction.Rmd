@@ -17,13 +17,7 @@ Given a multi-level classification problem, linear model might not be the optima
 
 First we are diving the labelled data (in pml-training.csv) into train and test set. Test set will provide us a good estimate of out of sample error rate.
 
-```{r, echo=FALSE, cache=TRUE, message=FALSE, warning=FALSE}
-library(readr)
-library(caret)
-dat <- read_csv("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv")
-```
-
-```{r, echo=TRUE, eval=FALSE}
+```{r, echo=TRUE, cache=TRUE, message=FALSE, warning=FALSE}
 library(readr)
 library(caret)
 dat <- read_csv("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv")
@@ -62,11 +56,8 @@ After cleaning, our data contains only 59 variables.
 Next we going to build a random forest model using our `training` dataset. 
 I have specified the number of trees to be 100 instead of using default number 500 as the out of sample accuracy increases only slightly when the number of trees exceed 100. If we use 500 trees, we can actually get perfect training accuracy of 1! 
 
-```{r, echo=FALSE, cache=TRUE}
+```{r, echo=TRUE, cache=TRUE, message=FALSE}
 library(randomForest)
-```
-
-```{r, echo=TRUE, cache=TRUE}
 rfFit <- randomForest(classe ~ ., data=training, ntree=100)
 ```
 
@@ -109,11 +100,7 @@ confusionMatrix(testing$classe, predict(rfFit,testing))
 
 Now that we have trained and validate our model, we will use it to predict the 20 observations in the test data. 
 
-```{r, echo=FALSE, cache=TRUE,message=FALSE, warning=FALSE}
-newdata <- read_csv("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv")
-```
-
-```{r, echo=TRUE, eval=FALSE}
+```{r, echo=TRUE, cache=TRUE,message=FALSE, warning=FALSE}
 newdata <- read_csv("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv")
 ```
 
