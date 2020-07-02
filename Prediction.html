@@ -381,12 +381,8 @@ library(caret)
 dat &lt;- read_csv(&quot;https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv&quot;)</code></pre>
 <pre class="r"><code>inTrain &lt;- createDataPartition(y=dat$classe,
                               p=0.75, list=FALSE)
-training &lt;- dat[inTrain,]</code></pre>
-<pre><code>## Warning: The `i` argument of ``[`()` can't be a matrix as of tibble 3.0.0.
-## Convert to a vector.
-## This warning is displayed once every 8 hours.
-## Call `lifecycle::last_warnings()` to see where this warning was generated.</code></pre>
-<pre class="r"><code>testing &lt;- dat[-inTrain,]
+training &lt;- dat[inTrain,]
+testing &lt;- dat[-inTrain,]
 dim(training)</code></pre>
 <pre><code>## [1] 14718   160</code></pre>
 <pre class="r"><code>dim(testing)</code></pre>
@@ -410,7 +406,7 @@ dim(training)</code></pre>
 </div>
 <div id="building-model" class="section level3">
 <h3>Building model</h3>
-<p>Next we going to build a random forest model using our <code>training</code> dataset. I have specified the number of trees to be 100 instead of using default number 500 as the out of sample accuracy increases only slightly when the number of trees exceed 100. If we use 500 trees, we can actually get perfect training accuracy of 1! This might be an indication of overfitting.</p>
+<p>Next we going to build a random forest model using our <code>training</code> dataset. I have specified the number of trees to be 100 instead of using default number 500 as the out of sample accuracy increases only slightly when the number of trees exceed 100. If we use 500 trees, we can actually get perfect training accuracy of 1!</p>
 <pre class="r"><code>rfFit &lt;- randomForest(classe ~ ., data=training, ntree=100)</code></pre>
 <p>We are interested in the strong classifiers, below command gives us the level of importance of each predictor in our random forest.</p>
 <pre class="r"><code>order(rfFit$importance, decreasing=T)</code></pre>

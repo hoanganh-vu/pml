@@ -17,29 +17,23 @@ Given a multi-level classification problem, linear model might not be the optima
 
 First we are diving the labelled data (in pml-training.csv) into train and test set. Test set will provide us a good estimate of out of sample error rate.
 
+```{r, echo=FALSE, cache=TRUE, message=FALSE, warning=FALSE}
+library(readr)
+library(caret)
+dat <- read_csv("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv")
+```
+
 ```{r, echo=TRUE, eval=FALSE}
 library(readr)
 library(caret)
 dat <- read_csv("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv")
+```
+
+```{r, echo=TRUE, cache=TRUE, warning=FALSE}
 inTrain <- createDataPartition(y=dat$classe,
                               p=0.75, list=FALSE)
 training <- dat[inTrain,]
 testing <- dat[-inTrain,]
-dim(training)
-dim(testing)
-```
-
-```{r, echo=FALSE, cache=TRUE}
-library(readr)
-library(caret)
-dat <- read_csv("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv")
-inTrain <- createDataPartition(y=dat$classe,
-                              p=0.75, list=FALSE)
-training <- dat[inTrain,]
-testing <- dat[-inTrain,]
-```
-
-```{r, echo=TRUE, cache=TRUE}
 dim(training)
 dim(testing)
 ```
@@ -66,7 +60,7 @@ After cleaning, our data contains only 59 variables.
 ### Building model
 
 Next we going to build a random forest model using our `training` dataset. 
-I have specified the number of trees to be 100 instead of using default number 500 as the out of sample accuracy increases only slightly when the number of trees exceed 100. If we use 500 trees, we can actually get perfect training accuracy of 1! This might be an indication of overfitting.
+I have specified the number of trees to be 100 instead of using default number 500 as the out of sample accuracy increases only slightly when the number of trees exceed 100. If we use 500 trees, we can actually get perfect training accuracy of 1! 
 
 ```{r, echo=FALSE, cache=TRUE}
 library(randomForest)
@@ -100,7 +94,7 @@ qplot(yaw_belt, pitch_forearm, data=dat, col = as.factor(classe))
 rfFit$err.rate[100,]
 ```
 
-The error rate $0.5%$ is random forest's out-of-bag error. However, we may expect that it could still be an underestimate of out-of-sample error. We will find out out-of-sample error later using our test dataset. 
+The error rate 0.5% is random forest's out-of-bag error. However, we may expect that it could still be an underestimate of out-of-sample error. We will find out out-of-sample error later using our test dataset. 
 
 
 Now let's use the test data to validate our model:
@@ -114,11 +108,12 @@ confusionMatrix(testing$classe, predict(rfFit,testing))
 ### Prediction
 
 Now that we have trained and validate our model, we will use it to predict the 20 observations in the test data. 
-```{r, echo=TRUE, eval=FALSE}
+
+```{r, echo=FALSE, cache=TRUE,message=FALSE, warning=FALSE}
 newdata <- read_csv("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv")
 ```
 
-```{r, echo=FALSE, cache=TRUE}
+```{r, echo=TRUE, eval=FALSE}
 newdata <- read_csv("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv")
 ```
 
